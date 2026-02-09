@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Koleksi Data</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<div class="page-container">
+
+    <!-- ================= LEFT PANEL ================= -->
+    <div class="left-panel">
+        <a href="homepage.html" class="back">← Kembali</a>
+
+        <h1>Selamat Datang!</h1>
+        <p class="subtitle">
+            Silahkan koleksi data yang anda inginkan pada Google Maps
+        </p>
+
+        <div class="search-wrapper">
+            <input
+                type="text"
+                id="searchInput"
+                placeholder="Ketikkan data yang ingin dicari!"
+            >
+            <button class="btn-cari" onclick="cariData()">Cari</button>
+        </div>
+
+        <div class="action-buttons">
+            <button onclick="simpanData()">Simpan Data</button>
+            <button onclick="tampilkanDashboard()">Tampilkan Dashboard</button>
+        </div>
+    </div>
+
+    <!-- ================= RIGHT PANEL ================= -->
+    <div class="right-panel">
+        <div style="display:flex; justify-content:space-between; align-items:center;"> 
+            <h2>Preview Data</h2>
+            <button id="editBtn" onclick="toggleEditMode()">Edit</button>
+        </div>
+        <hr>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>No</th>
+                    <th>Nama</th>
+                    <th>Alamat</th>
+                    <th>Wilayah</th>
+                    <th>No Telp</th>
+                    <th>Aktivitas</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+
+            <tbody id="data-body"></tbody>
+        </table>
+    </div>
+
+</div>
+
+<script>
+/* ================================
+   STATE
+================================ */
+let hasilScrape = [];
+let isEditMode = false;
+
+function toggleEditMode() {
+    isEditMode = !isEditMode;
+
+    const btn = document.getElementById("editBtn");
+    btn.textContent = isEditMode ? "Simpan" : "Edit";
+
+    saveToStorage();
+    renderTable();
+}
+
+/* ================================
+   LOCAL STORAGE UTIL
+================================ */
+function saveToStorage() {
+    localStorage.setItem("hasilScrape", JSON.stringify(hasilScrape));
+}
+
+function loadFromStorage() {
+    const saved = localStorage.getItem("hasilScrape");
+    if (saved) {
+        hasilScrape = JSON.parse(saved);
+        renderTable();
+    } else {
+        renderEmpty();
+    }
+}
+
+/* ================================
+   EDIT CELL
+================================ */
+function updateCell(index, field, value) {
+    hasilScrape[index][field] = value.trim();
+}
+
+/* ================================
+   ENTER NAVIGATION  ⬅️ TARUH DI SINI
+================================ */
+function handleEnter(e, index, field) {
+    if (e.key === "Enter") {
+        e.preventDefault();
+
+        const inputs = Array.from(
+            document.querySelectorAll("tbody input")
+        );
+
+        const currentIndex = inputs.indexOf(e.target);
+
+        if (currentIndex !== -1 && inputs[currentIndex + 1]) {
+            inputs[currentIndex + 1].focus();
+        } else {
+            e.target.blur();
+        }
+    }
+}
+
+function toggleEditMode() {
+    isEditMode = !isEditMode;
+
+    const btn = document.getElementById("editBtn");
+    btn.textContent = isEditMode ? "Simpan" : "Edit";
+
+    saveToStorage();
+    renderTable();
+}
+
+/* ================================
+   TABLE RENDER
+================================ */
+function renderEmpty() {
+    document.getElementById("data-body").innerHTML = `
+        <tr>
+            <td colspan="7" style="text-align:center">
+                Data belum diambil
+            </td>
+        </tr>
+    `;
+}
+
+function renderTable() {
+    const tableBody = document.getElementById("data-body");
+    tableBody.innerHTML = "";
+
+    if (!hasilScrape.length) {
+        renderEmpty();
+        return;
+    }
+
+    hasilScrape.forEach((item, i) => {
+        tableBody.innerHTML += `
+            <tr>
+                <td>${i + 1}</td>
+
+                <td ${isEditMode ? "contenteditable" : ""} 
+                    oninput="updateCell(${i}, 'nama', this.innerText)">
+                    ${item.nama}
+                </td>
+
+                <td ${isEditMode ? "contenteditable" : ""} 
+                    oninput="updateCell(${i}, 'alamat', this.innerText)">
+                    ${item.alamat}
+                </td>
+
+                <td ${isEditMode ? "contenteditable" : ""} 
+                    oninput="updateCell(${i}, 'wilayah', this.innerText)">
+                    ${item.wilayah}
+                </td>
+
+                <td ${isEditMode ? "contenteditable" : ""} 
+                    oninput="updateCell(${i}, 'no_telp', this.innerText)">
+                    ${item.no_telp || "-"}
+                </td>
+
+                <td ${isEditMode ? "contenteditable" : ""} 
+                    oninput="updateCell(${i}, 'aktivitas', this.innerText)">
+                    ${item.aktivitas || "-"}
+                </td>
+
+                <td class="aksi">
+                    <div class="aksi-wrapper">
+                        <a href="${item.link_maps}" target="_blank">Maps</a>
+                        <button class="btn-hapus" onclick="hapusData(${i})">
+                            Hapus
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+/* ================================
+   ACTIONS
+================================ */
+function hapusData(index) {
+    hasilScrape.splice(index, 1);
+    saveToStorage();
+    renderTable();
+}
+
+async function cariData() {
+    const query = document.getElementById("searchInput").value.trim();
+    const tableBody = document.getElementById("data-body");
+
+    if (!query) {
+        alert("Masukkan kata pencarian!");
+        return;
+    }
+
+    tableBody.innerHTML = `
+        <tr>
+            <td colspan="7" style="text-align:center">
+                ⏳ Mengambil data...
+            </td>
+        </tr>
+    `;
+
+    try {
+        const res = await fetch("http://127.0.0.1:5000/scrape", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query })
+        });
+
+        const data = await res.json();
+        hasilScrape = data;
+
+        localStorage.setItem("hasilScrape", JSON.stringify(hasilScrape));
+        localStorage.setItem("lastQuery", query); 
+
+        // saveToStorage();
+        renderTable();
+
+    } catch (err) {
+        console.error(err);
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="7" style="text-align:center">
+                    ⚠️ Backend error
+                </td>
+            </tr>
+        `;
+    }
+}
+
+document.getElementById("searchInput").addEventListener("keydown", e => {
+    if (e.key === "Enter") {
+        e.preventDefault();
+        cariData();
+    }
+});
+
+async function simpanData() {
+    if (!hasilScrape.length) {
+        alert("Harap ambil data terlebih dahulu!");
+        return;
+    }
+
+    const query = document.getElementById("searchInput").value.trim();
+
+    const res = await fetch("http://127.0.0.1:5000/export-excel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query, rows: hasilScrape })
+    });
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = query.toLowerCase().replace(/\s+/g, "_") + ".xlsx";
+    a.click();
+
+    URL.revokeObjectURL(url);
+}
+
+function tampilkanDashboard() {
+    // data SUDAH aman di localStorage
+    window.location.href = "dashboard.html";
+}
+
+/* ================================
+   INIT
+================================ */
+loadFromStorage();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,603 @@
+/* =============================
+   RESET DASAR
+============================= */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+/* =============================
+   HOMEPAGE BUTTONS
+============================= */
+
+.button-group {
+    display: flex;
+    gap: 18px;
+    margin-top: 20px;
+}
+
+.btn {
+    padding: 14px 34px;
+    border-radius: 30px;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.25s ease;
+}
+
+/* tombol utama */
+.btn.primary {
+    background: #4b6b4b;
+    color: white;
+}
+
+/* tombol kedua */
+.btn.secondary {
+    background: #4b6b4b;
+    color: white;
+}
+
+/* hover effect */
+.btn:hover {
+    opacity: 0.85;
+    transform: translateY(-1px);
+}
+
+/* =============================
+   HOMEPAGE HERO
+============================= */
+.hero {
+    width: 100%;
+    height: 100vh;
+    background-image: url("images/homepage.png");
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    align-items: center;
+    padding-left: 80px;
+}
+
+.content {
+    color: #000;
+}
+
+.welcome {
+    font-size: 20px;
+    margin-bottom: 8px;
+}
+
+.content h1 {
+    font-size: 28px;
+    margin-bottom: 500px;
+}
+
+/* =============================
+   PAGE CONTAINER
+============================= */
+.page-container {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* =============================
+   LEFT PANEL
+============================= */
+.left-panel {
+    width: 35%;
+    padding: 60px;
+    background: #ffffff;
+}
+
+.back {
+    display: inline-block;
+    margin-bottom: 40px;
+    color: #4b6b4b;
+    text-decoration: none;
+}
+
+.left-panel h1 {
+    margin-top: 160px;
+    margin-bottom: 10px;
+}
+
+.subtitle {
+    margin-bottom: 40px;
+    color: #333;
+}
+
+/* =============================
+   SEARCH BAR
+============================= */
+.search-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 25px;
+}
+
+.search-wrapper input {
+    width: 280px;
+    padding: 12px 18px;
+    border-radius: 30px;
+    border: 2px solid #4b6b4b;
+    outline: none;
+    background: white;
+    color: #333;
+    font-size: 14px;
+}
+
+/* placeholder */
+.search-wrapper input::placeholder {
+    color: #888;
+}
+
+/* focus effect */
+.search-wrapper input:focus {
+    border-color: #3f5f3f;
+}
+
+/* BUTTON CARI */
+.btn-cari {
+    padding: 12px 26px;
+    border-radius: 30px;
+    border: none;
+    background: #4b6b4b;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.btn-cari:hover {
+    opacity: 0.85;
+}
+
+/* =============================
+   ACTION BUTTONS
+============================= */
+.action-buttons {
+    margin-top: 20px;
+    display: flex;
+    gap: 15px;
+}
+
+.action-buttons button {
+    padding: 12px 26px;
+    border-radius: 30px;
+    border: none;
+    background: #4b6b4b;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.action-buttons button:hover {
+    opacity: 0.85;
+}
+
+/* =============================
+   EDIT BUTTON
+============================= */
+#editBtn {
+    background: #e67e22;
+    color: white;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 10px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+#editBtn:hover {
+    background: #c6630c;
+}
+
+/* =============================
+   RIGHT PANEL
+============================= */
+.right-panel {
+    width: 65%;
+    background: #4b6b4b;
+    color: white;
+    padding: 40px;
+}
+
+.right-panel h2 {
+    font-size: 20px;
+}
+
+.right-panel hr {
+    margin: 15px 0 25px;
+    border: none;
+    border-top: 1px solid rgba(255,255,255,0.3);
+}
+
+/* =============================
+   TABLE
+============================= */
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+/* HAPUS border dari td & th */
+th, td {
+    padding: 10px;
+    font-size: 14px;
+    border-bottom: none;
+    vertical-align: top;
+}
+
+/* BORDER PER BARIS (INI KUNCI) */
+tbody tr {
+    border-bottom: 1px solid rgba(255,255,255,0.25);
+}
+
+th {
+    background: rgba(255,255,255,0.15);
+    text-align: left;
+}
+
+tr:hover {
+    background: rgba(255,255,255,0.08);
+}
+
+
+/* EMPTY STATE */
+.empty {
+    text-align: center;
+    padding: 30px;
+    color: #e0e0e0;
+}
+
+/* =============================
+   POPUP (OPTIONAL)
+============================= */
+.popup {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    justify-content: center;
+    align-items: center;
+}
+
+.popup-content {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    text-align: center;
+}
+
+.popup-content button {
+    margin-top: 15px;
+    padding: 8px 20px;
+    border-radius: 20px;
+    border: none;
+    background: #4b6b4b;
+    color: white;
+    cursor: pointer;
+}
+
+/* =============================
+   AKSI COLUMN (FIX FINAL)
+============================= */
+
+/* td tetap NORMAL */
+td.aksi {
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+/* wrapper flex di DALAM td */
+td.aksi .aksi-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* LINK MAPS */
+td.aksi a {
+    color: #bfe3ff;
+    text-decoration: none;
+    font-weight: 500;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+td.aksi a:hover {
+    background: rgba(255,255,255,0.15);
+    color: #ffffff;
+}
+
+/* BUTTON HAPUS */
+.btn-hapus {
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.btn-hapus:hover {
+    background-color: #c0392b;
+}
+
+/* =============================
+   DASHBOARD LAYOUT
+============================= */
+.dashboard-container {
+    min-height: 100vh;
+    background: #4b6b4b;
+    padding: 40px;
+    color: white;
+}
+
+/* HEADER */
+.dashboard-header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 24px; /* 🔥 JARAK ANTARA INPUT & TOMBOL */
+}
+
+/* Judul */
+.dashboard-header h2 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 500;
+}
+
+.dashboard-form {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 20px;
+}
+
+#dashboardTitle::placeholder {
+    color: rgba(255,255,255,0.65);
+}
+
+#dashboardTitle:focus {
+    border-color: #4da3ff;
+    background: rgba(77,163,255,0.12);
+}
+
+/* BOLD TITLE */
+#dashboardTitleText {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 700; /* BOLD */
+    cursor: pointer;
+}
+
+/* Tombol upload */
+.upload-btn {
+    padding: 12px 18px;
+    border-radius: 10px;
+    font-size: 14px;
+
+    background: rgba(77,163,255,0.25);
+    border: 1.5px solid #4da3ff;
+    color: #dcecff;
+
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.upload-btn:hover {
+    background: rgba(77,163,255,0.4);
+}
+
+.upload-btn:active {
+    transform: scale(0.97);
+}
+
+.divider {
+    margin: 15px 0 25px;
+    border: none;
+    border-top: 1px solid rgba(255,255,255,0.35);
+}
+
+/* ROW */
+.dashboard-row {
+    margin-top: 25px;
+}
+
+/* GRID 3 */
+.grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+}
+
+/* CARD */
+.card {
+    background: white;
+    border-radius: 14px;
+}
+
+/* PLACEHOLDER CHART */
+.chart-box {
+    height: 250px;
+}
+
+.chart-wide {
+    height: 350px;
+}
+
+.chart-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.chart-box {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 16px;
+}
+
+
+.back {
+    display: inline-block;
+    margin-bottom: 18px;
+    text-decoration: none;
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+.back:hover {
+    text-decoration: underline;
+    opacity: 1;
+}
+
+.dashboard-container .back {
+    color: white;
+}
+
+/* ================================
+   TOP CHART LAYOUT
+================================ */
+
+/* TOTAL NUMBER */
+.total-number {
+    height: calc(100% - 30px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 52px;
+    font-weight: 800;
+    color: #2a633d;
+}
+
+.chart-small canvas {
+    width: 100% !important;
+    max-height: 100%;
+}
+
+.chart-small:hover,
+.map-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.12);
+    transition: all .25s ease;
+}
+
+/* ================================
+   EXPORT PDF BUTTON
+================================ */
+
+.dashboard-header-flex {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.export-btn {
+    padding: 12px 18px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+
+    background: #219cd5; /* biru laut */
+    border: none;
+    color: white;
+
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow: 0 8px 20px rgba(6, 73, 104, 0.35);
+}
+
+.export-btn:hover {
+    background: #0d4f6c;
+}
+
+.export-btn:active {
+    transform: scale(0.96);
+}
+
+/* ================================
+   ACTIVITY LAYOUT
+================================ */
+.activity-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 2.5fr;
+    gap: 24px;
+}
+
+.chart-small.small {
+    height: 220px;
+}
+
+.chart-activity {
+    background: white;
+    border-radius: 16px;
+    padding: 16px;
+    height: 220px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ================================
+   GRID TOP (DINAMIS)
+================================ */
+.top-charts.cols-4 {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.top-charts.cols-3 {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+/* ================================
+   EMPTY STATE
+================================ */
+#empty-state {
+    min-height: 70vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.empty-box {
+    background: rgba(255,255,255,0.12);
+    border: 1.5px dashed rgba(255,255,255,0.4);
+    border-radius: 18px;
+    padding: 40px 50px;
+    text-align: center;
+    max-width: 520px;
+}
+
+.empty-box h2 {
+    font-size: 22px;
+    margin-bottom: 12px;
+}
+
+.empty-box p {
+    font-size: 15px;
+    opacity: 0.9;
+    margin-bottom: 24px;
+}
+
+.empty-btn {
+    display: inline-block;
+    padding: 12px 20px;
+    border-radius: 12px;
+    background: white;
+    color: #4b6b4b;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.empty-btn:hover {
+    background: #3ac06b;
+}

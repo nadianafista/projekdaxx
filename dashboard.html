@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Dashboard</title>
+
+<link rel="stylesheet" href="/style.css">
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- Export PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://unpkg.com/leaflet-image/leaflet-image.js"></script>
+
+
+<style>
+/* ================================
+   HEADER
+================================ */
+.dashboard-header {
+    margin-bottom: 16px;
+}
+
+#dashboardTitle {
+    width: 100%;
+    font-size: 26px;
+    font-weight: 700;
+    color: white;
+    background: transparent;
+    border: none;
+    outline: none;
+}
+
+/* ================================
+   GRID TOP
+================================ */
+.top-charts {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    align-items: stretch;
+}
+
+
+/* ================================
+   CARD
+================================ */
+.chart-small {
+    background: white;
+    border-radius: 16px;
+    padding: 16px;
+    height: 280px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.chart-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #222;
+}
+
+.chart-small canvas {
+    width: 100%;
+}
+
+/* ================================
+   KPI
+================================ */
+.kpi-box {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.kpi-value {
+    font-size: 85px;
+    font-weight: 800;
+    color: #166534;
+    line-height: 1;
+}
+
+/* ================================
+   MAP
+================================ */
+.map-card {
+    margin-top: 36px;
+    background: white;
+    border-radius: 16px;
+    padding: 18px;
+    overflow: hidden;
+}
+
+#map {
+    height: 420px;
+    width: 100%;
+    border-radius: 12px;
+}
+
+#wilayahChart,
+#aktivitasChart,
+#telpChart {
+    max-height: 230px;
+}
+
+/* ================================
+   EXPORT SAFE TITLE
+================================ */
+.export-fix {
+    padding-top: 24px !important;
+}
+</style>
+</head>
+
+<body>
+
+<!-- WRAPPER KHUSUS PDF -->
+<div id="pdf-wrapper">
+
+<div id="dashboard" class="dashboard-container">
+
+    <a href="koleksidata.html" class="back">← Kembali</a>
+
+    <div id="empty-state" style="display:none">
+        <div class="empty-box">
+            <h2>📭 Data belum diambil</h2>
+            <p>Mohon ambil data terlebih dahulu melalui halaman koleksi data!</p>
+            <a href="koleksidata.html" class="empty-btn">Ambil Data</a>
+        </div>
+    </div>
+
+    <div class="dashboard-header dashboard-header-flex">
+        <input id="dashboardTitle" readonly>
+
+        <button id="exportPdfBtn" class="export-btn">
+            Ekspor PDF
+        </button>
+    </div>
+
+    <hr class="divider">
+
+    <!-- ================= TOP ================= -->
+    <div class="dashboard-row top-charts">
+
+        <!-- Wilayah -->
+        <div class="chart-small" id="wilayahCard">
+            <div class="chart-title">Jumlah Data per Wilayah</div>
+            <canvas id="wilayahChart"></canvas>
+        </div>
+
+        <!-- Telp -->
+        <div class="chart-small" id="wilayahCard">
+            <div class="chart-title">Distribusi Nomor Telepon</div>
+            <canvas id="telpChart"></canvas>
+        </div>
+
+        <!-- KPI -->
+        <div class="chart-small" id="wilayahCard">
+            <div class="chart-title">Total Data</div>
+            <div class="kpi-box">
+                <div class="kpi-value" id="totalData">0</div>
+            </div>
+        </div>
+
+        <!-- Aktivitas -->
+        <div class="chart-small" id="wilayahCard">
+            <div class="chart-title">Dominasi Aktivitas Industri</div>
+            <canvas id="aktivitasChart"></canvas>
+        </div>
+
+    </div>
+
+    <!-- ================= MAP ================= -->
+    <div class="dashboard-row">
+        <div class="map-card">
+            <div class="chart-title">Peta Sebaran Lokasi</div>
+
+            <!-- WRAPPER PENTING -->
+            <div id="map-wrapper" style="position: relative; width: 100%; height: 420px;">
+                
+                <!-- MAP ASLI -->
+                <div id="map"
+                    style="width:100%; height:100%; border-radius:12px;">
+                </div>
+
+                <!-- IMAGE KHUSUS EXPORT PDF -->
+                <img id="mapSnapshot"
+                    alt="Map Snapshot"
+                    style="
+                        display: none;
+                        position: absolute;
+                        inset: 0;
+                        width: 100%;
+                        height: 100%;
+                        object-fit: cover;
+                        border-radius: 12px;
+                        z-index: 10;
+                    ">
+            </div>
+        </div>
+    </div>
+
+</div>
+</div>
+
+<script>
+/* ================================
+   GLOBAL SUMMARY (UNTUK PDF)
+================================ */
+const summaryData = {
+    telp: { kantor: 0, pribadi: 0 },
+    wilayah: {},
+    aktivitas: {}
+};
+</script>
+
+<script>
+function getBarSize(total, orientation = "vertical") {
+    if (orientation === "horizontal") {
+        if (total <= 3) return 42;
+        if (total <= 6) return 32;
+        if (total <= 10) return 24;
+        return 18;
+    } else {
+        if (total <= 3) return 80;
+        if (total <= 6) return 60;
+        if (total <= 10) return 45;
+        return 32;
+    }
+}
+</script>
+
+<script>
+/* ================================
+   TITLE
+================================ */
+const q = localStorage.getItem("lastQuery");
+document.getElementById("dashboardTitle").value =
+    q ? "Dashboard " + q.replace(/\b\w/g, c => c.toUpperCase()) : "Dashboard";
+
+/* ================================
+   DATA
+================================ */
+const hasilScrape = JSON.parse(localStorage.getItem("hasilScrape") || "[]");
+
+// ================================
+// EMPTY STATE CHECK
+// ================================
+if (!hasilScrape.length) {
+
+    // tampilkan pesan
+    document.getElementById("empty-state").style.display = "flex";
+
+    // sembunyikan semua isi dashboard
+    document.querySelector(".dashboard-header").style.display = "none";
+    document.querySelector(".top-charts").style.display = "none";
+    document.querySelector(".map-card").style.display = "none";
+    document.querySelector(".divider").style.display = "none";
+
+    // sembunyikan tombol export
+    document.getElementById("exportPdfBtn").style.display = "none";
+
+    // stop semua render
+    throw new Error("No data – dashboard halted");
+}
+
+const totalEl = document.getElementById("totalData");
+let current = 0;
+const target = hasilScrape.length;
+
+const anim = setInterval(() => {
+    current++;
+    totalEl.textContent = current;
+    if (current >= target) clearInterval(anim);
+}, 30);
+
+function setupTopChartsLayout() {
+    const topCharts = document.querySelector(".top-charts");
+    const wilayahCard = document.getElementById("wilayahCard");
+
+    const wilayahSet = new Set();
+    hasilScrape.forEach(d => {
+        if (d.wilayah) wilayahSet.add(d.wilayah);
+    });
+
+    const wilayahCount = wilayahSet.size;
+
+    // reset class
+    topCharts.classList.remove("cols-3", "cols-4");
+
+    if (wilayahCount <= 1) {
+        // 🔥 1 wilayah → 3 chart sejajar
+        wilayahCard.style.display = "none";
+        topCharts.classList.add("cols-3");
+    } else {
+        // 🔥 >1 wilayah → 4 chart sejajar
+        wilayahCard.style.display = "flex";
+        topCharts.classList.add("cols-4");
+    }
+}
+
+/* ================================
+   BAR CHART WILAYAH (RANK COLOR)
+================================ */
+function renderWilayahChart() {
+    if (!hasilScrape.length) return;
+
+    const count = {};
+    hasilScrape.forEach(d => {
+        const w = d.wilayah || "Unknown";
+        count[w] = (count[w] || 0) + 1;
+    });
+
+    summaryData.wilayah = { ...count };
+
+    const sorted = Object.entries(count)
+        .sort((a, b) => b[1] - a[1]);
+
+    const labels = sorted.map(i => i[0]);
+    const values = sorted.map(i => i[1]);
+
+    const maxValue = Math.max(...values);
+
+    // =============================
+    // 🔥 PALETTE OTOMATIS PASTEL
+    // =============================
+    const colors = values.map(v => {
+        const ratio = v / maxValue;
+        const lightness = 75 - ratio * 50;
+
+        return `hsl(142, 55%, ${lightness}%)`;
+    });
+
+    const maxBar = getBarSize(labels.length, "vertical");
+    const ctx = document.getElementById("wilayahChart");
+
+    const chart = new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels,
+            datasets: [{
+                data: values.map(() => 0), 
+                backgroundColor: colors,
+                borderRadius: 8,
+                barThickness: "flex",
+                maxBarThickness: maxBar,
+                categoryPercentage: 0.7,
+                barPercentage: 0.9
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: {
+                duration: 900,
+                easing: "easeOutQuart"
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => ` ${ctx.raw} Data`
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { precision: 0 }
+                },
+                x: {
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+
+    // 🔥 trigger anim naik
+    setTimeout(() => {
+        chart.data.datasets[0].data = values;
+        chart.update();
+    }, 80);
+}
+
+/* ================================
+   DONUT
+================================ */
+function renderTelpChart() {
+    let kantor = 0, pribadi = 0;
+
+    hasilScrape.forEach(d => {
+        if (!d.no_telp) return;
+        const t = d.no_telp.replace(/\D/g, "");
+        if (t.startsWith("03")) kantor++;
+        else if (t.startsWith("08") || t.startsWith("628")) pribadi++;
+    });
+
+    // ===== build data dinamis =====
+    summaryData.telp.kantor = kantor;
+    summaryData.telp.pribadi = pribadi;
+
+    const labels = [];
+    const data = [];
+    const colors = [];
+
+    if (kantor > 0) {
+        labels.push("Nomor Kantor");
+        data.push(kantor);
+        colors.push("#166534");
+    }
+
+    if (pribadi > 0) {
+        labels.push("Nomor Pribadi");
+        data.push(pribadi);
+        colors.push("#4ade80");
+    }
+
+    const ctx = document.getElementById("telpChart");
+
+    const chart = new Chart(ctx, {
+        type: "doughnut",
+        data: {
+            labels,
+            datasets: [{
+                data: data.map(() => 0),
+                backgroundColor: colors,
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: "60%",
+            animation: {
+                duration: 900,
+                easing: "easeOutQuart"
+            },
+            plugins: {
+                legend: {
+                    position: "bottom",
+                    labels: {
+                        padding: 12,
+                        boxWidth: 12,
+                        font: { size: 11 }
+                    }
+                }
+            }
+        }
+    });
+
+    // ===== trigger animation =====
+    setTimeout(() => {
+        chart.data.datasets[0].data = data;
+        chart.update();
+    }, 80);
+}
+
+/* ================================
+   MAP
+================================ */
+let mapInstance = null;
+
+function renderMap() {
+    const mapEl = document.getElementById("map");
+    if (!mapEl) return;
+
+    if (mapInstance) {
+        mapInstance.remove();
+        mapInstance = null;
+    }
+
+    mapInstance = L.map("map", {
+        zoomControl: true,
+        attributionControl: true
+    }).setView([-8.65, 115.22], 10);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "© OpenStreetMap",
+        crossOrigin: true
+    }).addTo(mapInstance);
+
+    const bounds = [];
+
+    hasilScrape.forEach(d => {
+        if (!d.lat || !d.lng) return;
+
+        const lat = parseFloat(d.lat);
+        const lng = parseFloat(d.lng);
+        if (isNaN(lat) || isNaN(lng)) return;
+
+        L.marker([lat, lng])
+            .addTo(mapInstance)
+            .bindPopup(`
+                <strong>${d.nama || "-"}</strong><br>
+                ${d.alamat || "-"}
+            `);
+
+        bounds.push([lat, lng]);
+    });
+
+    if (bounds.length) {
+        mapInstance.fitBounds(bounds, { padding: [40, 40] });
+    }
+
+    setTimeout(() => {
+        mapInstance.invalidateSize(true);
+    }, 300);
+}
+
+/* ================================
+   CAPTURE MAP (UNTUK PDF)
+================================ */
+function captureLeafletMap() {
+    return new Promise((resolve, reject) => {
+
+        if (!mapInstance) {
+            reject("Map belum dirender");
+            return;
+        }
+
+        leafletImage(mapInstance, (err, canvas) => {
+            if (err) reject(err);
+            else resolve(canvas.toDataURL("image/png"));
+        });
+
+    });
+}
+
+/* ================================
+   AKTIVITAS
+================================ */
+function summarizeAktivitas(raw) {
+    if (!raw || raw === "-") return null;
+
+    const text = raw.toLowerCase();
+
+    // =============================
+    // 1. PRIORITY: HASIL RETURN RESMI → DISINGKAT
+    // =============================
+    const priorityMap = {
+        "badan kepengurusan kelautan dan perikanan": "Dinas Perikanan",
+        "mengelola rumah potong hewan": "RPH",
+        "mengelola rumah potong ayam": "RPA",
+        "tempat pelelangan ikan": "Pasar Ikan",
+        "mengelola makanan frozen food": "Usaha Frozen Food",
+        "mengelola dan pembuatan es cream": "Usaha Es Krim",
+        "mengelola minuman dingin": "Usaha Minuman",
+        "agen pengelola dan pembuatan es": "Agen Es",
+        "mengelola dan pembuatan es": "Usaha Es",
+        "supplier pengelola ikan": "Supplier Ikan",
+        "mengelola ikan": "Usaha Ikan",
+        "mengelola makanan": "Usaha Makanan/Seafood"
+    };
+
+    for (const key in priorityMap) {
+        if (text.includes(key)) {
+            return priorityMap[key];
+        }
+    }
+
+    // =============================
+    // 2. FALLBACK KEYWORD INFERENCE
+    // =============================
+    const has = (...keys) => keys.some(k => text.includes(k));
+
+    if (has("tpfi", "dinas", "dkp", "dkpp")) return "Dinas Perikanan";
+    if (has("rph", "hewan", "jagal")) return "RPH";
+    if (has("rpa", "ayam")) return "RPA";
+    if (has("tpi")) return "Pasar Ikan";
+    if (has("beku", "frozen")) return "Usaha Frozen Food";
+    if (has("cream", "krim")) return "Usaha Es Krim";
+    if (has("tea", "teh", "dung", "kepal", "puter", "putar", "wawan", "dawet")) return "Usaha Minuman";
+
+    if (has("kristal", "crystal", "tube", "balok", "batu", "dry", "pabrik es")) {
+        return text.includes("agen") ? "Agen Es" : "Usaha Es";
+    }
+
+    if (has("ikan", "kakap", "perikanan", "fish", "segar", "tuna", "laut", "lautan", "tambak")) {
+        return text.includes("supplier") ? "Supplier Ikan" : "Usaha Ikan";
+    }
+
+    if (has("food", "bakar", "seafood")) return "Usaha Makanan/Seafood";
+
+    return null;
+}
+
+function renderAktivitasChart() {
+    const count = {};
+
+    hasilScrape.forEach(d => {
+        const label = summarizeAktivitas(d.aktivitas);
+        if (!label) return;
+        count[label] = (count[label] || 0) + 1;
+    });
+
+    if (!Object.keys(count).length) return;
+
+    // 🔥 SIMPAN UNTUK PDF
+    summaryData.aktivitas = { ...count };
+
+    const sorted = Object.entries(count)
+        .map(([label, value]) => ({ label, value }))
+        .sort((a, b) => b.value - a.value);
+
+    const labels = sorted.map(d => d.label);
+    const values = sorted.map(d => d.value);
+
+    const maxValue = Math.max(...values);
+
+    // =============================
+    // 🔥 PALETTE OTOMATIS PASTEL
+    // =============================
+    const colors = values.map(v => {
+        const ratio = v / maxValue;
+        const lightness = 75 - ratio * 50;
+
+        return `hsl(142, 55%, ${lightness}%)`;
+    });
+
+    const maxBar = getBarSize(labels.length, "horizontal");
+    const ctx = document.getElementById("aktivitasChart");
+
+    const chart = new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels,
+            datasets: [{
+                data: values.map(() => 0),
+                backgroundColor: colors,
+                borderRadius: 6,
+                barThickness: "flex",
+                maxBarThickness: maxBar,
+                categoryPercentage: 0.75,
+                barPercentage: 0.9
+            }]
+        },
+        options: {
+            indexAxis: "y",
+            maintainAspectRatio: false,
+            animation: {
+                duration: 900,
+                easing: "easeOutQuart"
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => ` ${ctx.raw} Perusahaan`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    ticks: { precision: 0 }
+                },
+                y: {
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+
+    // 🔥 trigger anim
+    setTimeout(() => {
+        chart.data.datasets[0].data = values;
+        chart.update();
+    }, 80);
+}
+
+setupTopChartsLayout();
+renderWilayahChart();
+renderTelpChart();
+renderAktivitasChart();
+
+setTimeout(() => {
+    renderMap();
+}, 600);
+</script>
+
+<script>
+/* ================================
+   EXPORT PDF (PAKAI JUDUL DASHBOARD)
+================================ */
+async function downloadPDF() {
+    const dashboard = document.getElementById("dashboard");
+    const titleInput = document.getElementById("dashboardTitle");
+    const titleText = titleInput.value || "Dashboard";
+
+    const mapEl = document.getElementById("map");
+    const mapImg = document.getElementById("mapSnapshot");
+    const mapDataURL = await captureLeafletMap();
+
+    mapImg.src = mapDataURL;
+    mapImg.style.display = "block";
+    mapEl.style.display = "none";
+
+    titleInput.style.display = "none";
+
+    const exportTitle = document.createElement("h1");
+    exportTitle.textContent = titleText;
+    exportTitle.style.fontSize = "26px";
+    exportTitle.style.fontWeight = "700";
+    exportTitle.style.color = "white";
+    exportTitle.style.margin = "0 0 16px 0";
+
+    document.querySelector(".dashboard-header").prepend(exportTitle);
+
+    await new Promise(r => setTimeout(r, 300));
+
+    const canvas = await html2canvas(dashboard, {
+        scale: 2,
+        backgroundColor: "#4b6b4b",
+        useCORS: true
+    });
+
+    mapImg.style.display = "none";
+    mapEl.style.display = "block";
+    exportTitle.remove();
+    titleInput.style.display = "block";
+
+    const pdf = new jspdf.jsPDF({
+        orientation: "landscape",
+        unit: "mm",
+        format: "a4"
+    });
+
+    const imgData = canvas.toDataURL("image/jpeg", 1.0);
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const margin = 10;
+    const usableWidth = pageWidth - margin * 2;
+    const imgHeight = canvas.height * usableWidth / canvas.width;
+
+    pdf.addImage(imgData, "JPEG", margin, margin, usableWidth, imgHeight);
+    pdf.addPage();
+
+    let y = 16;
+
+    pdf.setFontSize(18);
+    pdf.text("Ringkasan Dashboard", margin, y);
+    y += 8;
+
+    pdf.setFontSize(12);
+
+    // ---- TELP ----
+    pdf.text(
+        `Nomor Telepon: Kantor ${summaryData.telp.kantor}, Pribadi ${summaryData.telp.pribadi}`,
+        margin,
+        y
+    );
+    y += 8;
+
+    // ---- WILAYAH ----
+    pdf.text("Distribusi Wilayah:", margin, y);
+    y += 6;
+
+    Object.entries(summaryData.wilayah).forEach(([k, v]) => {
+        pdf.text(`• ${k}: ${v}`, margin + 4, y);
+        y += 5;
+    });
+
+    y += 4;
+
+    // ---- AKTIVITAS ----
+    pdf.text("Distribusi Aktivitas:", margin, y);
+    y += 6;
+
+    Object.entries(summaryData.aktivitas).forEach(([k, v]) => {
+        pdf.text(`• ${k}: ${v}`, margin + 4, y);
+        y += 5;
+    });
+
+    y += 10;
+
+    // =============================
+    // DATA TABLE (SEMUA DATA)
+    // =============================
+    const colX = [
+    margin,        // No
+    margin + 10,   // Nama
+    margin + 90,   // Alamat
+    margin + 165,  // Wilayah
+    margin + 195,  // No Telp
+    margin + 235   // Aktivitas
+    ];
+    
+    function drawTableHeader(pdf, y) {
+        const headers = ["No", "Nama", "Alamat", "Wilayah", "No Telp", "Aktivitas"];
+        const headerHeight = 6;
+
+        // background kuning pastel
+        pdf.setFillColor(255, 245, 204);
+        headers.forEach((_, i) => {
+            const colWidth =
+                i < colX.length - 1
+                    ? colX[i + 1] - colX[i]
+                    : 30;
+
+            pdf.rect(
+                colX[i] - 1,
+                y - 4.5,
+                colWidth,
+                headerHeight,
+                "F"
+            );
+        });
+
+        // teks bold
+        pdf.setFont("helvetica", "bold");
+        pdf.setTextColor(0, 0, 0);
+
+        headers.forEach((h, i) => {
+            pdf.text(h, colX[i], y);
+        });
+
+        // balik normal
+        pdf.setFont("helvetica", "normal");
+
+        return y + headerHeight;
+    }
+
+    pdf.setFontSize(14);
+    pdf.text("Preview Data:", margin, y);
+    y += 8;
+
+    pdf.setFontSize(9);
+    y = drawTableHeader(pdf, y);
+
+    // balik ke normal buat row
+    pdf.setFont("helvetica", "normal");
+
+    // ROWS
+    hasilScrape.forEach((d, idx) => {
+
+        if (y > 180) {
+            pdf.addPage();
+            y = 20;
+            y = drawTableHeader(pdf, y);
+        }
+
+        const row = [
+            idx + 1,
+            d.nama || "-",
+            d.alamat || "-",
+            d.wilayah || "-",
+            d.no_telp || "-",
+            summarizeAktivitas(d.aktivitas) || "-"
+        ];
+
+        row.forEach((cell, i) => {
+            const text = String(cell)
+                .replace(/\n/g, " ")
+                .substring(0, 35); // ⬅ lebih pendek & aman
+
+            pdf.text(text, colX[i], y);
+        });
+
+        y += 5;
+    });
+
+    // =============================
+    // SAVE
+    // =============================
+    const safeName = titleText
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_|_$/g, "");
+
+    pdf.save(`${safeName}.pdf`);
+}
+
+document
+    .getElementById("exportPdfBtn")
+    .addEventListener("click", downloadPDF);
+</script>
+
+</body>
+</html>
