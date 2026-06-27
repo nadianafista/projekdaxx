@@ -1,9 +1,6 @@
 import pandas as pd
 import re
 
-# ===============================
-# REQUIRED & ALIAS
-# ===============================
 REQUIRED_COLUMNS = [
     "nama", "alamat", "wilayah",
     "no_telp", "aktivitas", "link_maps"
@@ -28,26 +25,20 @@ COLUMN_ALIASES = {
     "long": "lng"
 }
 
-# ===============================
-# UTIL
-# ===============================
 def normalize_column(col):
     return COLUMN_ALIASES.get(
         str(col).strip().lower(),
         str(col).strip().lower()
     )
 
-# ===============================
-# PARSE LAT LNG DARI LINK MAPS
-# ===============================
 def extract_lat_lng(link):
     if not isinstance(link, str):
         return None, None
 
     patterns = [
-        r'@(-?\d+\.\d+),(-?\d+\.\d+)',      # @lat,lng
-        r'!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)',  # !3dlat!4dlng
-        r'!2d(-?\d+\.\d+)!3d(-?\d+\.\d+)'   # !2dlng!3dlat
+        r'@(-?\d+\.\d+),(-?\d+\.\d+)',      
+        r'!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)',  
+        r'!2d(-?\d+\.\d+)!3d(-?\d+\.\d+)'   
     ]
 
     for p in patterns:
@@ -58,15 +49,8 @@ def extract_lat_lng(link):
                 return lat, lng
 
     return None, None
-
-# ===============================
-# VALIDASI EXCEL
-# ===============================
 def validate_excel(file_path):
     try:
-        # ===============================
-        # LOAD FILE
-        # ===============================
         if file_path.endswith(".csv"):
             df = pd.read_csv(file_path, dtype=str)
         else:
@@ -76,14 +60,7 @@ def validate_excel(file_path):
                 dtype=str
             )
 
-        # ===============================
-        # NORMALIZE COLUMN NAMES
-        # ===============================
         df.columns = [normalize_column(c) for c in df.columns]
-
-        # ===============================
-        # CHECK REQUIRED COLUMN
-        # ===============================
         missing_columns = [
             c for c in REQUIRED_COLUMNS
             if c not in df.columns
@@ -96,16 +73,11 @@ def validate_excel(file_path):
                 "found_columns": list(df.columns)
             }
 
-        # ===============================
-        # HANDLE LAT LNG (FINAL FIX)
-        # ===============================
         if "lat" not in df.columns or "lng" not in df.columns:
-            # ❌ Excel TIDAK punya koordinat → parse dari link_maps
             df["lat"], df["lng"] = zip(
                 *df["link_maps"].apply(extract_lat_lng)
             )
         else:
-            # ✅ Excel SUDAH punya koordinat
             df["lat"] = pd.to_numeric(
                 df["lat"], errors="coerce"
             )
@@ -113,14 +85,8 @@ def validate_excel(file_path):
                 df["lng"], errors="coerce"
             )
 
-        # ===============================
-        # DROP DATA TANPA KOORDINAT
-        # ===============================
         df = df.dropna(subset=["lat", "lng"])
 
-        # ===============================
-        # RESPONSE
-        # ===============================
         return {
             "status": "success",
             "columns": list(df.columns),
