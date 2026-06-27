@@ -7,10 +7,9 @@ import os
 import re
 from werkzeug.utils import secure_filename
 import warnings
+import sys
+sys.stdout.reconfigure(line_buffering=True)
 
-# =========================
-# BUNGKAM WARNINGS
-# =========================
 warnings.simplefilter("ignore")
 app = Flask(__name__)
 CORS(app)
@@ -19,8 +18,8 @@ app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
 # =========================
 # PATH CONFIG
 # =========================
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))   # backend/
-PROJECT_ROOT = os.path.dirname(BASE_DIR)                # PROJECT/
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))  
+PROJECT_ROOT = os.path.dirname(BASE_DIR)                
 
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -28,9 +27,6 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 def safe_filename(text):
     return re.sub(r"[^\w\s-]", "", text).strip().lower().replace(" ", "_")
 
-# =========================
-# STATIC FILES
-# =========================
 @app.route("/style.css")
 def style():
     return send_from_directory(PROJECT_ROOT, "style.css")
@@ -39,9 +35,6 @@ def style():
 def images(filename):
     return send_from_directory(os.path.join(PROJECT_ROOT, "images"), filename)
 
-# =========================
-# PAGES (HTML ROOT)
-# =========================
 @app.route("/")
 def homepage():
     return send_from_directory(PROJECT_ROOT, "homepage.html")
@@ -53,21 +46,6 @@ def dashboard_page():
 @app.route("/koleksidata")
 def koleksi_page():
     return send_from_directory(PROJECT_ROOT, "koleksidata.html")
-
-# =========================
-# UPLOAD DASHBOARD
-# =========================
-def upload_dashboard():
-    print("📥 upload-dashboard dipanggil")
-
-    if "file" not in request.files:
-        print("❌ file tidak ada di request")
-        return jsonify({
-            "validation": {
-                "status": "error",
-                "message": "File tidak ditemukan"
-            }
-        }), 400
 
 @app.route("/upload-dashboard", methods=["POST"])
 def upload_dashboard():
@@ -88,7 +66,6 @@ def upload_dashboard():
         temp_path = os.path.join(OUTPUT_DIR, filename)
         file.save(temp_path)
 
-        # Baca Excel → konversi ke CSV
         try:
             df = pd.read_excel(temp_path, engine="openpyxl", dtype=str)
             df.columns = [c.strip() for c in df.columns]
@@ -115,9 +92,6 @@ def upload_dashboard():
     except Exception as e:
         return jsonify({"status":"error","message":str(e)}),500
 
-# =========================
-# SCRAPE → JSON
-# =========================
 @app.route("/scrape", methods=["POST"])
 def scrape():
     try:
@@ -137,9 +111,6 @@ def scrape():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# =========================
-# EXPORT EXCEL
-# =========================
 @app.route("/export-excel", methods=["POST"])
 def export_excel():
     try:
@@ -179,9 +150,5 @@ def export_excel():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# =========================
-# RUN
-# =========================
 if __name__ == "__main__":
-    # debug=False supaya JSON AJAX murni
     app.run(debug=False)
