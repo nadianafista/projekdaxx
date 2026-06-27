@@ -9,10 +9,7 @@
 <body>
 
 <div class="page-container">
-
-    <!-- ================= LEFT PANEL ================= -->
     <div class="left-panel">
-        <a href="homepage.html" class="back">← Kembali</a>
 
         <h1>Selamat Datang!</h1>
         <p class="subtitle">
@@ -34,7 +31,6 @@
         </div>
     </div>
 
-    <!-- ================= RIGHT PANEL ================= -->
     <div class="right-panel">
         <div style="display:flex; justify-content:space-between; align-items:center;"> 
             <h2>Preview Data</h2>
@@ -62,25 +58,9 @@
 </div>
 
 <script>
-/* ================================
-   STATE
-================================ */
 let hasilScrape = [];
 let isEditMode = false;
 
-function toggleEditMode() {
-    isEditMode = !isEditMode;
-
-    const btn = document.getElementById("editBtn");
-    btn.textContent = isEditMode ? "Simpan" : "Edit";
-
-    saveToStorage();
-    renderTable();
-}
-
-/* ================================
-   LOCAL STORAGE UTIL
-================================ */
 function saveToStorage() {
     localStorage.setItem("hasilScrape", JSON.stringify(hasilScrape));
 }
@@ -95,16 +75,10 @@ function loadFromStorage() {
     }
 }
 
-/* ================================
-   EDIT CELL
-================================ */
 function updateCell(index, field, value) {
     hasilScrape[index][field] = value.trim();
 }
 
-/* ================================
-   ENTER NAVIGATION  ⬅️ TARUH DI SINI
-================================ */
 function handleEnter(e, index, field) {
     if (e.key === "Enter") {
         e.preventDefault();
@@ -133,9 +107,6 @@ function toggleEditMode() {
     renderTable();
 }
 
-/* ================================
-   TABLE RENDER
-================================ */
 function renderEmpty() {
     document.getElementById("data-body").innerHTML = `
         <tr>
@@ -182,7 +153,7 @@ function renderTable() {
 
                 <td ${isEditMode ? "contenteditable" : ""} 
                     oninput="updateCell(${i}, 'aktivitas', this.innerText)">
-                    ${item.aktivitas || "-"}
+                    ${item.aktivitas && item.aktivitas.trim() !== "" ? item.aktivitas : "-"}
                 </td>
 
                 <td class="aksi">
@@ -198,9 +169,6 @@ function renderTable() {
     });
 }
 
-/* ================================
-   ACTIONS
-================================ */
 function hapusData(index) {
     hasilScrape.splice(index, 1);
     saveToStorage();
@@ -236,8 +204,6 @@ async function cariData() {
 
         localStorage.setItem("hasilScrape", JSON.stringify(hasilScrape));
         localStorage.setItem("lastQuery", query); 
-
-        // saveToStorage();
         renderTable();
 
     } catch (err) {
@@ -285,13 +251,9 @@ async function simpanData() {
 }
 
 function tampilkanDashboard() {
-    // data SUDAH aman di localStorage
     window.location.href = "dashboard.html";
 }
 
-/* ================================
-   INIT
-================================ */
 loadFromStorage();
 </script>
 
