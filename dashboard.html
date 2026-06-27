@@ -5,20 +5,12 @@
 <title>Dashboard</title>
 
 <link rel="stylesheet" href="/style.css">
-
-<!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<!-- Leaflet -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-<!-- Export PDF -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://unpkg.com/leaflet-image/leaflet-image.js"></script>
-
-
 <style>
 /* ================================
    HEADER
@@ -113,7 +105,7 @@
 }
 
 /* ================================
-   EXPORT SAFE TITLE
+   EXPORT 
 ================================ */
 .export-fix {
     padding-top: 24px !important;
@@ -173,7 +165,7 @@
 
         <!-- Aktivitas -->
         <div class="chart-small" id="wilayahCard">
-            <div class="chart-title">Dominasi Aktivitas Industri</div>
+            <div class="chart-title">Dominasi Segmentasi Industri</div>
             <canvas id="aktivitasChart"></canvas>
         </div>
 
@@ -183,16 +175,12 @@
     <div class="dashboard-row">
         <div class="map-card">
             <div class="chart-title">Peta Sebaran Lokasi</div>
-
-            <!-- WRAPPER PENTING -->
             <div id="map-wrapper" style="position: relative; width: 100%; height: 420px;">
                 
-                <!-- MAP ASLI -->
                 <div id="map"
                     style="width:100%; height:100%; border-radius:12px;">
                 </div>
 
-                <!-- IMAGE KHUSUS EXPORT PDF -->
                 <img id="mapSnapshot"
                     alt="Map Snapshot"
                     style="
@@ -246,30 +234,15 @@ function getBarSize(total, orientation = "vertical") {
 const q = localStorage.getItem("lastQuery");
 document.getElementById("dashboardTitle").value =
     q ? "Dashboard " + q.replace(/\b\w/g, c => c.toUpperCase()) : "Dashboard";
-
-/* ================================
-   DATA
-================================ */
 const hasilScrape = JSON.parse(localStorage.getItem("hasilScrape") || "[]");
 
-// ================================
-// EMPTY STATE CHECK
-// ================================
 if (!hasilScrape.length) {
-
-    // tampilkan pesan
     document.getElementById("empty-state").style.display = "flex";
-
-    // sembunyikan semua isi dashboard
     document.querySelector(".dashboard-header").style.display = "none";
     document.querySelector(".top-charts").style.display = "none";
     document.querySelector(".map-card").style.display = "none";
     document.querySelector(".divider").style.display = "none";
-
-    // sembunyikan tombol export
     document.getElementById("exportPdfBtn").style.display = "none";
-
-    // stop semua render
     throw new Error("No data – dashboard halted");
 }
 
@@ -294,22 +267,19 @@ function setupTopChartsLayout() {
 
     const wilayahCount = wilayahSet.size;
 
-    // reset class
     topCharts.classList.remove("cols-3", "cols-4");
 
     if (wilayahCount <= 1) {
-        // 🔥 1 wilayah → 3 chart sejajar
         wilayahCard.style.display = "none";
         topCharts.classList.add("cols-3");
     } else {
-        // 🔥 >1 wilayah → 4 chart sejajar
         wilayahCard.style.display = "flex";
         topCharts.classList.add("cols-4");
     }
 }
 
 /* ================================
-   BAR CHART WILAYAH (RANK COLOR)
+   BAR CHART WILAYAH 
 ================================ */
 function renderWilayahChart() {
     if (!hasilScrape.length) return;
@@ -329,10 +299,6 @@ function renderWilayahChart() {
     const values = sorted.map(i => i[1]);
 
     const maxValue = Math.max(...values);
-
-    // =============================
-    // 🔥 PALETTE OTOMATIS PASTEL
-    // =============================
     const colors = values.map(v => {
         const ratio = v / maxValue;
         const lightness = 75 - ratio * 50;
@@ -384,7 +350,6 @@ function renderWilayahChart() {
         }
     });
 
-    // 🔥 trigger anim naik
     setTimeout(() => {
         chart.data.datasets[0].data = values;
         chart.update();
@@ -404,7 +369,6 @@ function renderTelpChart() {
         else if (t.startsWith("08") || t.startsWith("628")) pribadi++;
     });
 
-    // ===== build data dinamis =====
     summaryData.telp.kantor = kantor;
     summaryData.telp.pribadi = pribadi;
 
@@ -457,7 +421,6 @@ function renderTelpChart() {
         }
     });
 
-    // ===== trigger animation =====
     setTimeout(() => {
         chart.data.datasets[0].data = data;
         chart.update();
@@ -539,73 +502,68 @@ function captureLeafletMap() {
 /* ================================
    AKTIVITAS
 ================================ */
-function summarizeAktivitas(raw) {
-    if (!raw || raw === "-") return null;
+function summarizeAktivitas(nama, aktivitas = "") {
 
-    const text = raw.toLowerCase();
+    const text =
+        `${nama || ""} ${aktivitas || ""}`.toLowerCase();
 
-    // =============================
-    // 1. PRIORITY: HASIL RETURN RESMI → DISINGKAT
-    // =============================
-    const priorityMap = {
-        "badan kepengurusan kelautan dan perikanan": "Dinas Perikanan",
-        "mengelola rumah potong hewan": "RPH",
-        "mengelola rumah potong ayam": "RPA",
-        "tempat pelelangan ikan": "Pasar Ikan",
-        "mengelola makanan frozen food": "Usaha Frozen Food",
-        "mengelola dan pembuatan es cream": "Usaha Es Krim",
-        "mengelola minuman dingin": "Usaha Minuman",
-        "agen pengelola dan pembuatan es": "Agen Es",
-        "mengelola dan pembuatan es": "Usaha Es",
-        "supplier pengelola ikan": "Supplier Ikan",
-        "mengelola ikan": "Usaha Ikan",
-        "mengelola makanan": "Usaha Makanan/Seafood"
-    };
+    const has = (...keys) =>
+        keys.some(k => text.includes(k));
 
-    for (const key in priorityMap) {
-        if (text.includes(key)) {
-            return priorityMap[key];
-        }
-    }
+    if (has("tpfi", "dinas", "dkp", "dkpp"))
+        return "Government";
 
-    // =============================
-    // 2. FALLBACK KEYWORD INFERENCE
-    // =============================
-    const has = (...keys) => keys.some(k => text.includes(k));
+    if (
+        has(
+            "rumah potong hewan",
+            "rph",
+            "jagal"
+        )
+    )
+        return "RPH";
 
-    if (has("tpfi", "dinas", "dkp", "dkpp")) return "Dinas Perikanan";
-    if (has("rph", "hewan", "jagal")) return "RPH";
-    if (has("rpa", "ayam")) return "RPA";
-    if (has("tpi")) return "Pasar Ikan";
-    if (has("beku", "frozen")) return "Usaha Frozen Food";
-    if (has("cream", "krim")) return "Usaha Es Krim";
-    if (has("tea", "teh", "dung", "kepal", "puter", "putar", "wawan", "dawet")) return "Usaha Minuman";
+    if (
+        has(
+            "rumah potong ayam",
+            "rpa",
+            "ayam"
+        )
+    )
+        return "RPA";
 
-    if (has("kristal", "crystal", "tube", "balok", "batu", "dry", "pabrik es")) {
-        return text.includes("agen") ? "Agen Es" : "Usaha Es";
-    }
+    if (has("pabrik"))
+        return "Existing Pabrik";
 
-    if (has("ikan", "kakap", "perikanan", "fish", "segar", "tuna", "laut", "lautan", "tambak")) {
-        return text.includes("supplier") ? "Supplier Ikan" : "Usaha Ikan";
-    }
+    if (has("agen", "supplier", "agent"))
+        return "Agen/Reseller";
 
-    if (has("food", "bakar", "seafood")) return "Usaha Makanan/Seafood";
+    if (
+        has(
+            "perikanan",
+            "ikan",
+            "fish",
+            "tpi",
+            "tambak"
+        )
+    )
+        return "Perikanan";
 
-    return null;
+    return "New Segment Industry";
 }
 
 function renderAktivitasChart() {
     const count = {};
 
     hasilScrape.forEach(d => {
-        const label = summarizeAktivitas(d.aktivitas);
+        const label = summarizeAktivitas(
+            d.nama,
+            d.aktivitas
+        );
         if (!label) return;
         count[label] = (count[label] || 0) + 1;
     });
 
     if (!Object.keys(count).length) return;
-
-    // 🔥 SIMPAN UNTUK PDF
     summaryData.aktivitas = { ...count };
 
     const sorted = Object.entries(count)
@@ -614,12 +572,8 @@ function renderAktivitasChart() {
 
     const labels = sorted.map(d => d.label);
     const values = sorted.map(d => d.value);
-
     const maxValue = Math.max(...values);
 
-    // =============================
-    // 🔥 PALETTE OTOMATIS PASTEL
-    // =============================
     const colors = values.map(v => {
         const ratio = v / maxValue;
         const lightness = 75 - ratio * 50;
@@ -671,7 +625,6 @@ function renderAktivitasChart() {
         }
     });
 
-    // 🔥 trigger anim
     setTimeout(() => {
         chart.data.datasets[0].data = values;
         chart.update();
@@ -690,7 +643,7 @@ setTimeout(() => {
 
 <script>
 /* ================================
-   EXPORT PDF (PAKAI JUDUL DASHBOARD)
+   EXPORT PDF 
 ================================ */
 async function downloadPDF() {
     const dashboard = document.getElementById("dashboard");
@@ -772,7 +725,7 @@ async function downloadPDF() {
     y += 4;
 
     // ---- AKTIVITAS ----
-    pdf.text("Distribusi Aktivitas:", margin, y);
+    pdf.text("Distribusi Segmentasi Perusahaan:", margin, y);
     y += 6;
 
     Object.entries(summaryData.aktivitas).forEach(([k, v]) => {
@@ -782,16 +735,13 @@ async function downloadPDF() {
 
     y += 10;
 
-    // =============================
-    // DATA TABLE (SEMUA DATA)
-    // =============================
     const colX = [
-    margin,        // No
-    margin + 10,   // Nama
-    margin + 90,   // Alamat
-    margin + 165,  // Wilayah
-    margin + 195,  // No Telp
-    margin + 235   // Aktivitas
+    margin,        
+    margin + 10,   
+    margin + 90,   
+    margin + 165,  
+    margin + 195,  
+    margin + 235   
     ];
     
     function drawTableHeader(pdf, y) {
@@ -854,13 +804,16 @@ async function downloadPDF() {
             d.alamat || "-",
             d.wilayah || "-",
             d.no_telp || "-",
-            summarizeAktivitas(d.aktivitas) || "-"
+            summarizeAktivitas(
+                d.nama,
+                d.aktivitas
+            ) || "-"
         ];
 
         row.forEach((cell, i) => {
             const text = String(cell)
                 .replace(/\n/g, " ")
-                .substring(0, 35); // ⬅ lebih pendek & aman
+                .substring(0, 35); 
 
             pdf.text(text, colX[i], y);
         });
